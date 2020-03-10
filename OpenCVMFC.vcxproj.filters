@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="OpenCL">
+      <UniqueIdentifier>{3ba1607a-3550-497f-8365-be2d8cb6d387}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OpenCVMFC.h">
@@ -39,6 +42,9 @@
     <ClInclude Include="CEditEx.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="OpenCLUtils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OpenCVMFC.cpp">
@@ -56,6 +62,9 @@
     <ClCompile Include="CEditEx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="OpenCLUtils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="OpenCVMFC.rc">
@@ -65,6 +74,12 @@
   <ItemGroup>
     <None Include="res\OpenCVMFC.rc2">
       <Filter>资源文件</Filter>
+    </None>
+    <None Include="medianFilter.cl">
+      <Filter>OpenCL</Filter>
+    </None>
+    <None Include="transform.cl">
+      <Filter>OpenCL</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

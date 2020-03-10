@@ -198,6 +198,7 @@
     <ClInclude Include="CEditEx.h" />
     <ClInclude Include="Debug.h" />
     <ClInclude Include="ImageProcess.h" />
+    <ClInclude Include="OpenCLUtils.h" />
     <ClInclude Include="OpenCVMFC.h" />
     <ClInclude Include="OpenCVMFCDlg.h" />
     <ClInclude Include="Resource.h" />
@@ -207,6 +208,7 @@
   <ItemGroup>
     <ClCompile Include="CEditEx.cpp" />
     <ClCompile Include="ImageProcess.cpp" />
+    <ClCompile Include="OpenCLUtils.cpp" />
     <ClCompile Include="OpenCVMFC.cpp" />
     <ClCompile Include="OpenCVMFCDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -220,7 +222,9 @@
     <ResourceCompile Include="OpenCVMFC.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="medianFilter.cl" />
     <None Include="res\OpenCVMFC.rc2" />
+    <None Include="transform.cl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\OpenCVMFC.ico" />

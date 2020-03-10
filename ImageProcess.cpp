@@ -25,6 +25,10 @@ const int ImageProcess::BILATERAL_KERNEL_SIZE = 3;
 
 ProcessParam ImageProcess::param;
 
+void ImageProcess::initialize() {
+	OpenCLUtils::initialize();
+}
+
 void ImageProcess::process(ImageFragment *frag) {
 	//LOG("Processing: " << frag->index); 
 	translateImage(frag); 
@@ -44,10 +48,11 @@ void ImageProcess::processNoise(ImageFragment *frag) {
 void ImageProcess::processFilter(ImageFragment *frag) {
 	switch (param.filter.type) {
 	case 1: medianFilter(frag); break;
-	case 2: meanFilter(frag); break;
-	case 3: gaussianFilter(frag); break;
-	case 4: wienerFilter(frag); break;
-	case 5: bilateralFiter(frag); break;
+	case 2: medianFilterCL(frag); break;
+	case 3: meanFilter(frag); break;
+	case 4: gaussianFilter(frag); break;
+	case 5: wienerFilter(frag); break;
+	case 6: bilateralFiter(frag); break;
 	}
 }
 
@@ -207,40 +212,47 @@ void ImageProcess::translateImage(ImageFragment *frag,
 	int pit = src->GetPitch(), cnt = src->GetBPP() / 8;
 	int dPit = dist->GetPitch(), dCnt = dist->GetBPP() / 8;
 
-	double start = frag->start, end = frag->end;
-
-	ull srcCnt = srcW * srcH, distCnt = distW * distH;
-	ull srcS = srcCnt * start, srcE = srcCnt * end;
-	ull distS = distCnt * start, distE = distCnt * end;
-
-	/*
-	LOG("from " << start << " to " << end);
-	LOG("srcS = " << srcS << ", srcE = " << srcE);
-	LOG("distS = " << distS << ", distE = " << distE);
-	LOG("srcCnt = " << srcCnt << ", distCnt = " << distCnt);
-	LOG("distW = " << distW << ", distH = " << distH);
-	LOG("distW2 = " << distW2 << ", distH2 = " << distH2);
-	*/
-
 	byte* srcData = (byte*)src->GetBits();
 	byte* distData = (byte*)dist->GetBits();
 
-	float fCosa = cos(angle * PI / 180), fSina = sin(angle * PI / 180);
+	if(algo == 1)
+		_biCubicTranslateCL(srcData, distData, distW, distH,
+			srcW, srcH, pit, dPit, angle, xScale, yScale);
+	else {
+		double start = frag->start, end = frag->end;
 
-	//LOG("fCosa = " << fCosa << ", fSina = " << fSina);
+		ull srcCnt = srcW * srcH, distCnt = distW * distH;
+		ull srcS = srcCnt * start, srcE = srcCnt * end;
+		ull distS = distCnt * start, distE = distCnt * end;
 
-	double mx = ((double)distW2 - 1) / ((double)srcW - 1);
-	double my = ((double)distH2 - 1) / ((double)srcH - 1);
+		/*
+		LOG("from " << start << " to " << end);
+		LOG("srcS = " << srcS << ", srcE = " << srcE);
+		LOG("distS = " << distS << ", distE = " << distE);
+		LOG("srcCnt = " << srcCnt << ", distCnt = " << distCnt);
+		LOG("distW = " << distW << ", distH = " << distH);
+		LOG("distW2 = " << distW2 << ", distH2 = " << distH2);
+		*/
 
-	switch (algo) {
-	case 0:
-		_biCubicTranslate(distS, distE, distW, distH, distW2, distH2, fCosa, fSina,
-			mx, my, srcData, pit, cnt, srcW, srcH, distData, dPit, dCnt);
-		break;
-	case 1:
-		_normalTranslate(distS, distE, distW, distH, distW2, distH2, fCosa, fSina, 
-			mx, my, srcData, pit, cnt, srcW, srcH, distData, dPit, dCnt);
-		break;
+		float fCosa = cos(angle * PI / 180), fSina = sin(angle * PI / 180);
+
+		//LOG("fCosa = " << fCosa << ", fSina = " << fSina);
+
+		double mx = ((double)distW2 - 1) / ((double)srcW - 1);
+		double my = ((double)distH2 - 1) / ((double)srcH - 1);
+
+		switch (algo) {
+		case 0:
+			_biCubicTranslate(distS, distE, distW, distH, distW2, distH2, fCosa, fSina,
+				mx, my, srcData, pit, cnt, srcW, srcH, distData, dPit, dCnt);
+			break;
+		case 1:
+			break;
+		case 2:
+			_normalTranslate(distS, distE, distW, distH, distW2, distH2, fCosa, fSina,
+				mx, my, srcData, pit, cnt, srcW, srcH, distData, dPit, dCnt);
+			break;
+		}
 	}
 }
 
@@ -300,7 +312,38 @@ void ImageProcess::dftTranslate(ImageFragment * frag) {
 		*(distPoint(u, v)) = mag;
 	}
 }
+/*
+void ImageProcess::clDftTranslate(ImageFragment * frag) {
 
+	auto params = (ParallelParams*)_params;
+	auto source = (CImage*)(params->ctx);
+	CImageWrapper src(source), dst(params->img);
+
+	OpenCLUtils::
+
+	DECLARE_CLA(cla);
+	VERIFY(cla->LoadKernel("Fourier"));
+	DA->StartTick();
+	auto inmem = cla->CreateMemoryBuffer(src.MemSize(), src.MemStartAt());
+	VERIFY(inmem != nullptr);
+	auto outmem = cla->CreateMemoryBuffer(dst.MemSize(), dst.MemStartAt());
+	VERIFY(outmem != nullptr);
+	cla->SetKernelArg(0, sizeof(inmem), &inmem);
+	cla->SetKernelArg(1, sizeof(outmem), &outmem);
+	cla->SetKernelArg(2, sizeof(int), &src.Width);
+	cla->SetKernelArg(3, sizeof(int), &src.Height);
+	cla->SetKernelArg(4, sizeof(int), &src.Pitch);
+	constexpr auto WORKDIM = 2;
+	size_t localws[WORKDIM] = { 16, 16 };
+	size_t globalws[WORKDIM] = {
+		Algo::RoundUp(localws[0], dst.Width),
+		Algo::RoundUp(localws[1], dst.Height),
+	};
+	VERIFY(cla->RunKernel(WORKDIM, localws, globalws));
+	cla->ReadBuffer(outmem, dst.MemSize(), dst.MemStartAt());
+	cla->Cleanup();
+}
+*/
 void ImageProcess::gaussianNoise(ImageFragment * frag, double avg, double std) {
 	CImage* dist = frag->dist;
 	if (dist == NULL || dist->IsNull()) return;
@@ -462,6 +505,64 @@ void ImageProcess::medianFilter(ImageFragment * frag) {
 	delete[] fr;
 	delete[] fg;
 	delete[] fb;
+}
+
+void ImageProcess::medianFilterCL(ImageFragment * frag) {
+	CImage* dist = frag->dist;
+	if (dist == NULL || dist->IsNull()) return;
+
+	const int SIZE = MEDIAN_KERNEL_SIZE, N = SIZE * SIZE;
+	const int D = SIZE >> 1, M = N >> 1;
+
+	int distH = dist->GetHeight(), distW = dist->GetWidth();
+	int dPit = dist->GetPitch(), dCnt = dist->GetBPP() / 8;
+
+	double start = frag->start, end = frag->end;
+
+	ull distCnt = distW * distH;
+	ull distS = distCnt * start, distE = distCnt * end;
+	ull length = distE - distS;
+
+	byte* distData = (byte*)dist->GetBits();
+
+	// step 4:create command queue;						
+	// 一个device有多个queue，queue之间并行执行
+	ASSERT(OpenCLUtils::createCommonQueue());
+	
+	// step 5:create memory object;						
+	// 图像类型（iamge）
+	size_t bSize = -dPit * distH * sizeof(byte); // 缓冲区大小
+	byte* startPos = distData + dPit * (distH - 1);
+	auto frgbs = OpenCLUtils::createBuffer(bSize, startPos);
+	ASSERT(frgbs != NULL);
+
+	// step 6:create program; & step 7:create kernel;
+	ASSERT(OpenCLUtils::createProgram("medianFilter.cl", "medianFilterCL"));
+
+	// step 8:set kernel arguement;
+	ASSERT(OpenCLUtils::setKernelArg(0, sizeof(cl_mem), (void*)&frgbs));
+	ASSERT(OpenCLUtils::setKernelArg(1, sizeof(int), (void*)&dPit));
+	ASSERT(OpenCLUtils::setKernelArg(2, sizeof(int), (void*)&distW));
+	ASSERT(OpenCLUtils::setKernelArg(3, sizeof(int), (void*)&distH));
+
+	// step 9:set work group size;  							
+	// <---->dimBlock\dimGrid
+	cl_uint dim = 2;
+	size_t localSize[2] = { 16, 16 };
+	// let opencl device determine how to break work items into work groups;
+	size_t globalSize[2] = { roundUp(localSize[0], distW),
+		roundUp(localSize[1], distH) };
+
+	// step 10:run kernel;				
+	// put kernel and work-item arugement into queue and excute;
+	ASSERT(OpenCLUtils::runKernel(dim, localSize, globalSize));
+
+	//step 11:get result;
+	ASSERT(OpenCLUtils::readBuffer(frgbs, bSize, startPos));
+
+	//step 12:release all resource;
+	OpenCLUtils::clean();
+
 }
 
 void ImageProcess::gaussianFilter(ImageFragment * frag, double std) {
@@ -901,6 +1002,61 @@ void ImageProcess::_biCubicTranslate(ull distS, ull distE, int distW, int distH,
 		*(distPoint(distX, distY) + 1) = fg;
 		*(distPoint(distX, distY)) = fb;
 	}
+}
+
+void ImageProcess::_biCubicTranslateCL(byte *srcData, byte *distData, int distW, int distH, 
+	int srcW, int srcH, int pit, int dPit, double angle, double xScale, double yScale) {
+
+	// step 4:create command queue;						
+	// 一个device有多个queue，queue之间并行执行
+	ASSERT(OpenCLUtils::createCommonQueue());
+
+	// step 5:create memory object;						
+	// 图像类型（iamge）
+	size_t srcSize = -pit * srcH * sizeof(byte); // 缓冲区大小
+	byte* srcPos = srcData + pit * (srcH - 1);
+	auto srcMem = OpenCLUtils::createBuffer(srcSize, srcPos);
+	ASSERT(srcMem != NULL);
+
+	size_t distSize = -dPit * distH * sizeof(byte); // 缓冲区大小
+	byte* distPos = distData + dPit * (distH - 1);
+	auto distMem = OpenCLUtils::createBuffer(distSize, distPos);
+	ASSERT(distMem != NULL);
+
+	// step 6:create program; & step 7:create kernel;
+	ASSERT(OpenCLUtils::createProgram("transform.cl", "transformCL"));
+
+	// step 8:set kernel arguement;
+	ASSERT(OpenCLUtils::setKernelArg(0, sizeof(cl_mem), (void*)&srcMem));
+	ASSERT(OpenCLUtils::setKernelArg(1, sizeof(cl_mem), (void*)&distMem));
+	ASSERT(OpenCLUtils::setKernelArg(2, sizeof(int), (void*)&pit));
+	ASSERT(OpenCLUtils::setKernelArg(3, sizeof(int), (void*)&dPit));
+	ASSERT(OpenCLUtils::setKernelArg(4, sizeof(int), (void*)&distW));
+	ASSERT(OpenCLUtils::setKernelArg(5, sizeof(int), (void*)&distH));
+	ASSERT(OpenCLUtils::setKernelArg(6, sizeof(int), (void*)&srcW));
+	ASSERT(OpenCLUtils::setKernelArg(7, sizeof(int), (void*)&srcH));
+	ASSERT(OpenCLUtils::setKernelArg(8, sizeof(double), (void*)&angle));
+	ASSERT(OpenCLUtils::setKernelArg(9, sizeof(double), (void*)&xScale));
+	ASSERT(OpenCLUtils::setKernelArg(10, sizeof(double), (void*)&yScale));
+
+	// step 9:set work group size;  							
+	// <---->dimBlock\dimGrid
+	cl_uint dim = 2;
+	size_t localSize[2] = { 16, 16 };
+	// let opencl device determine how to break work items into work groups;
+	size_t globalSize[2] = { roundUp(localSize[0], distW),
+		roundUp(localSize[1], distH) };
+
+	// step 10:run kernel;				
+	// put kernel and work-item arugement into queue and excute;
+	ASSERT(OpenCLUtils::runKernel(dim, localSize, globalSize));
+
+	//step 11:get result;
+	ASSERT(OpenCLUtils::readBuffer(distMem, distSize, distPos));
+
+	//step 12:release all resource;
+	OpenCLUtils::clean();
+
 }
 
 void ImageProcess::_normalTranslate(ull distS, ull distE, int distW, int distH,
@@ -1347,3 +1503,12 @@ void ImageProcess::_2DArrayScale(ImageFragment *frag, double xScale, double ySca
 	}
 }
 */
+
+size_t ImageProcess::roundUp(int groupSize, int globalSize) {
+	int r = globalSize % groupSize;
+	if (r == 0) {
+		return globalSize;
+	} else {
+		return globalSize + groupSize - r;
+	}
+}

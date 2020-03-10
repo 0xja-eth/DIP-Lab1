@@ -5,6 +5,8 @@
 #include <cmath>
 #include <algorithm>
 
+#include "OpenCLUtils.h"
+
 #define MAX_THREAD 8
 #define MAX_SPAN 15
 
@@ -46,6 +48,8 @@ struct ProcessParam {
 	double startTime;
 	bool dft = false;
 
+	bool openCL = false;
+
 	NoiseParam noise;
 	FilterParam filter;
 };
@@ -83,6 +87,8 @@ public:
 	// Ë«±ßÂË²¨ºË´óÐ¡
 	static const int BILATERAL_KERNEL_SIZE;
 
+	static void initialize();
+
 	static CImage* createImage(CImage* src);
 
 	static ImageFragment* createImageFragment(CImage *src, CImage *dist);
@@ -106,6 +112,8 @@ public:
 
 	static void dftTranslate(ImageFragment * frag);
 
+	//static void clDftTranslate(ImageFragment * frag);
+
 	static void saltNoise(ImageFragment * frag, double factor);
 	static void saltNoise(ImageFragment * frag);
 
@@ -116,6 +124,8 @@ public:
 
 	static void medianFilter(ImageFragment * frag);
 
+	static void medianFilterCL(ImageFragment * frag);
+
 	static void gaussianFilter(ImageFragment * frag, double std);
 	static void gaussianFilter(ImageFragment * frag);
 
@@ -123,6 +133,7 @@ public:
 
 	static void bilateralFiter(ImageFragment * frag, double std);
 	static void bilateralFiter(ImageFragment * frag);
+
 	/*
 	static void rotateImage(ImageFragment *frag, double angle);
 	static void rotateImage(ImageFragment *frag);
@@ -145,10 +156,13 @@ private:
 	
 	static double _biCubicPoly(double x);
 
-	static void _biCubicTranslate(ull distS, ull distE, int distW, int distH, 
+	static void _biCubicTranslate(ull distS, ull distE, int distW, int distH,
 		int distW2, int distH2, float fCosa, float fSina, double mx, double my,
 		byte *srcData, int pit, int cnt, int srcW, int srcH, byte * distData, int dPit, int dCnt);
 
+	static void _biCubicTranslateCL(byte *srcData, byte *distData, int distW, int distH,
+		int srcW, int srcH, int pit, int dPit, double angle, double xScale, double yScale);
+	
 	static void _normalTranslate(ull distS, ull distE, int distW, int distH,
 		int distW2, int distH2, float fCosa, float fSina, double mx, double my, 
 		byte *srcData, int pit, int cnt, int srcW, int srcH, byte * distData, int dPit, int dCnt);
@@ -160,4 +174,6 @@ private:
 	static void _generateGaussianKernel(double t[3][3], double std);
 	static void _generateGaussianKernelForBin(double t[3][3], double std);
 	static void _generateColorKernel(double c[256], double std);
+
+	static size_t roundUp(int groupSize, int globalSize);
 };
