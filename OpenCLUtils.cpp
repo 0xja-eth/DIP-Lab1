@@ -18,7 +18,7 @@ void OpenCLUtils::initialize() {
 	ASSERT(getPlatform());
 	ASSERT(getDevices());
 	ASSERT(getContext());
-	LOG("完成OpenCL加载");
+	LOG("初始化OpenCL完成");
 }
 
 bool OpenCLUtils::getPlatform() {

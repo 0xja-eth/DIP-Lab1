@@ -29,12 +29,14 @@ void ImageProcess::initialize() {
 	OpenCLUtils::initialize();
 }
 
-void ImageProcess::process(ImageFragment *frag) {
-	//LOG("Processing: " << frag->index); 
-	translateImage(frag); 
-	processNoise(frag); processFilter(frag);
-	if (param.dft) dftTranslate(frag);
-	::PostMessage(AfxGetMainWnd()->GetSafeHwnd(), WM_TRANSLATE, 1, NULL);
+void ImageProcess::process(ImageFragment *frag, bool msg) {
+	if (param.xScale > 0 && param.yScale > 0) {
+		translateImage(frag);
+		processNoise(frag); processFilter(frag);
+		if (param.dft) dftTranslate(frag);
+	}
+	if (msg)
+		::PostMessage(AfxGetMainWnd()->GetSafeHwnd(), WM_TRANSLATE, 1, NULL);
 	delete frag;
 }
 
@@ -626,7 +628,7 @@ void ImageProcess::gaussianFilter(ImageFragment * frag, double std) {
 }
 
 void ImageProcess::gaussianFilter(ImageFragment * frag) {
-	gaussianFilter(frag, param.filter.gausStd);
+	gaussianFilter(frag, param.filter.std);
 }
 
 void ImageProcess::wienerFilter(ImageFragment * frag) {
@@ -828,7 +830,7 @@ void ImageProcess::bilateralFiter(ImageFragment * frag, double std) {
 }
 
 void ImageProcess::bilateralFiter(ImageFragment * frag) {
-	bilateralFiter(frag, param.filter.gausStd);
+	bilateralFiter(frag, param.filter.std);
 }
 
 void ImageProcess::saltNoise(ImageFragment * frag, double factor) {

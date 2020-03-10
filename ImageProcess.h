@@ -38,7 +38,7 @@ struct NoiseParam {
 
 struct FilterParam {
 	int type = 0; // 0: 无滤波, 1: 中值, 2: 均值, 3: 高斯, 4: 维纳, 5: 双边
-	double gausStd = 0;
+	double std = 0;
 };
 
 // 处理参数
@@ -47,8 +47,6 @@ struct ProcessParam {
 	int algo, threadCount;
 	double startTime;
 	bool dft = false;
-
-	bool openCL = false;
 
 	NoiseParam noise;
 	FilterParam filter;
@@ -96,7 +94,7 @@ public:
 	static ImageFragment* createImageFragment(CImage *src, CImage *dist, 
 		double start, double end, int index, int maxSpan);
 
-	static void process(ImageFragment *frag);
+	static void process(ImageFragment *frag, bool msg = true);
 	static void processNoise(ImageFragment *frag);
 	static void processFilter(ImageFragment *frag);
 
