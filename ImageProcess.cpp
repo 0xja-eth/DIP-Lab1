@@ -29,13 +29,13 @@ void ImageProcess::initialize() {
 	OpenCLUtils::initialize();
 }
 
-void ImageProcess::process(ImageFragment *frag, bool msg) {
+void ImageProcess::process(ImageFragment *frag, bool banMsg) {
 	if (param.xScale > 0 && param.yScale > 0) {
 		translateImage(frag);
 		processNoise(frag); processFilter(frag);
 		if (param.dft) dftTranslate(frag);
 	}
-	if (msg)
+	if (!banMsg)
 		::PostMessage(AfxGetMainWnd()->GetSafeHwnd(), WM_TRANSLATE, 1, NULL);
 	delete frag;
 }
@@ -498,7 +498,7 @@ void ImageProcess::medianFilter(ImageFragment * frag) {
 	}
 
 	for (ull i = 0; i < length; ++i) {
-		x = calcX(i), y = calcY(i);
+		x = calcX((i+distS)), y = calcY((i+distS));
 		*(distPoint(x, y) + 2) = fr[i];
 		*(distPoint(x, y) + 1) = fg[i];
 		*(distPoint(x, y)) = fb[i];
@@ -700,7 +700,7 @@ void ImageProcess::wienerFilter(ImageFragment * frag) {
 	for (int ch = 0; ch < 3; ++ch)
 		noise[ch] /= length;
 
-	// loop #2: do Wiener filter
+	// 计算维纳滤波
 	for (ull i = distS; i < distE; ++i) {
 		x = calcX(i), y = calcY(i);
 
@@ -930,9 +930,9 @@ double ImageProcess::_biCubicPoly(double x) {
 	double absX = abs(x);
 	double a = -0.5;
 	if (absX <= 1.0)
-		return (a + 2)*pow(absX, 3) - (a + 3)*pow(absX, 2) + 1;
+		return (a + 2)*absX*absX*absX - (a + 3)*absX + 1;
 	else if (absX < 2.0)
-		return a * pow(absX, 3) - 5 * a*pow(absX, 2) + 8 * a*absX - 4 * a;
+		return a * absX*absX*absX - 5 * a*absX*absX + 8 * a*absX - 4 * a;
 	else
 		return 0.0;
 	/*
@@ -962,8 +962,8 @@ void ImageProcess::_biCubicTranslate(ull distS, ull distE, int distW, int distH,
 	int x, y; // 实际坐标
 	int minX, maxX, minY, maxY;
 
-	int fr, fb, fg; // 最终颜色
-	int tr, tb, tg; // 中间运算
+	double fr, fb, fg; // 最终颜色
+	double tr, tb, tg; // 中间运算
 
 	byte *pi; // 临时点
 
@@ -977,7 +977,7 @@ void ImageProcess::_biCubicTranslate(ull distS, ull distE, int distW, int distH,
 		tx = dx * fCosa + dy * fSina + distW2 / 2;
 		ty = dx * fSina - dy * fCosa + distH2 / 2;
 
-		x = tx / mx, y = ty / my;
+		x = tx /= mx, y = ty /= my;
 		/*
 		LOG("dist: " << distX << ", " << distY << " => d:" << dx << ", " << dy << 
 			" => t:" << tx << ", " << ty << " => src: " << x << ", " << y);
@@ -989,20 +989,26 @@ void ImageProcess::_biCubicTranslate(ull distS, ull distE, int distW, int distH,
 
 		if ((minX >= 0) && (maxX < srcW) && (minY >= 0) && (maxY < srcH))
 			// 在范围内
-			for (int xi = minX; xi <= maxX; ++xi)
+			for (int xi = minX; xi <= maxX; ++xi) {
+				wx = _biCubicPoly(x - xi);
 				for (int yj = minY; yj <= maxY; ++yj) {
 					pi = srcPoint(xi, yj);
-					wx = _biCubicPoly(x - xi);
 					wy = _biCubicPoly(y - yj);
 					getColor(tr, tg, tb, pi);
 					fr += tr * wx * wy;
 					fg += tg * wx * wy;
 					fb += tb * wx * wy;
-				} else fr = fg = fb = 255;
-
-		*(distPoint(distX, distY) + 2) = fr;
-		*(distPoint(distX, distY) + 1) = fg;
-		*(distPoint(distX, distY)) = fb;
+				}
+			}
+		else if ((x >= 0) && (x < srcW) && (y >= 0) && (y < srcH)) {
+			pi = srcPoint(x, y);
+			getColor(tr, tg, tb, pi);
+			fr = tr; fg = tg; fb = tb;
+		} else
+			fr = fg = fb = 255;
+		*(distPoint(distX, distY) + 2) = (int)fr;
+		*(distPoint(distX, distY) + 1) = (int)fg;
+		*(distPoint(distX, distY)) = (int)fb;
 	}
 }
 

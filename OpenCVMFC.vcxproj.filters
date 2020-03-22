@@ -81,6 +81,7 @@
     <None Include="transform.cl">
       <Filter>OpenCL</Filter>
     </None>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\OpenCVMFC.ico">

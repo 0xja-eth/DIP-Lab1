@@ -94,7 +94,7 @@ public:
 	static ImageFragment* createImageFragment(CImage *src, CImage *dist, 
 		double start, double end, int index, int maxSpan);
 
-	static void process(ImageFragment *frag, bool msg = true);
+	static void process(ImageFragment *frag, bool banMsg = true);
 	static void processNoise(ImageFragment *frag);
 	static void processFilter(ImageFragment *frag);
 

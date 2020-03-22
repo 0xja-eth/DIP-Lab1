@@ -48,16 +48,23 @@ __kernel void transformCL(__global uchar *in, __global uchar *out, int pit, int 
 
 	if ((minX >= 0) && (maxX < srcW) && (minY >= 0) && (maxY < srcH))
 		// ÔÚ·¶Î§ÄÚ
-		for (int xi = minX; xi <= maxX; ++xi)
+		for (int xi = minX; xi <= maxX; ++xi){
+			wx = _biCubicPoly(x - xi);
 			for (int yj = minY; yj <= maxY; ++yj) {
-				wx = _biCubicPoly(x - xi);
 				wy = _biCubicPoly(y - yj);
 
 				for (int ch = 0; ch < 3; ++ch) {
-					tc = srcColor(x, y, ch);
+					tc = srcColor(xi, yj, ch);
 					color[ch] += tc * wx * wy;
 				}
-	} else for (int ch = 0; ch < 3; ++ch) 
+			} 
+		}
+	else if ((x >= 0) && (x < srcW) && (y >= 0) && (y < srcH)) 
+		for (int ch = 0; ch < 3; ++ch) {
+			tc = srcColor(x, y, ch);
+			color[ch] = tc;
+		}
+	else for (int ch = 0; ch < 3; ++ch) 
 		color[ch] = 255;
 
 	for (int ch = 0; ch < 3; ++ch) 

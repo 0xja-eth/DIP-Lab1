@@ -222,6 +222,7 @@
     <ResourceCompile Include="OpenCVMFC.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="ClassDiagram.cd" />
     <None Include="medianFilter.cl" />
     <None Include="res\OpenCVMFC.rc2" />
     <None Include="transform.cl" />

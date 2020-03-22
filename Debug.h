@@ -6,5 +6,6 @@
 #ifdef _DEBUG
 #define LOG(x) cout<<x<<endl;
 #else
-#define LOG(x) ;
+// 为了输出处理时间，还是需要 cout
+#define LOG(x) cout<<x<<endl;
 #endif
