@@ -529,23 +529,23 @@ void ImageProcess::medianFilterCL(ImageFragment * frag) {
 
 	// step 4:create command queue;						
 	// 一个device有多个queue，queue之间并行执行
-	ASSERT(OpenCLUtils::createCommonQueue());
+	ENSURE(OpenCLUtils::createCommonQueue());
 	
 	// step 5:create memory object;						
 	// 图像类型（iamge）
 	size_t bSize = -dPit * distH * sizeof(byte); // 缓冲区大小
 	byte* startPos = distData + dPit * (distH - 1);
 	auto frgbs = OpenCLUtils::createBuffer(bSize, startPos);
-	ASSERT(frgbs != NULL);
+	ENSURE(frgbs != NULL);
 
 	// step 6:create program; & step 7:create kernel;
-	ASSERT(OpenCLUtils::createProgram("medianFilter.cl", "medianFilterCL"));
+	ENSURE(OpenCLUtils::createProgram("medianFilter.cl", "medianFilterCL"));
 
 	// step 8:set kernel arguement;
-	ASSERT(OpenCLUtils::setKernelArg(0, sizeof(cl_mem), (void*)&frgbs));
-	ASSERT(OpenCLUtils::setKernelArg(1, sizeof(int), (void*)&dPit));
-	ASSERT(OpenCLUtils::setKernelArg(2, sizeof(int), (void*)&distW));
-	ASSERT(OpenCLUtils::setKernelArg(3, sizeof(int), (void*)&distH));
+	ENSURE(OpenCLUtils::setKernelArg(0, sizeof(cl_mem), (void*)&frgbs));
+	ENSURE(OpenCLUtils::setKernelArg(1, sizeof(int), (void*)&dPit));
+	ENSURE(OpenCLUtils::setKernelArg(2, sizeof(int), (void*)&distW));
+	ENSURE(OpenCLUtils::setKernelArg(3, sizeof(int), (void*)&distH));
 
 	// step 9:set work group size;  							
 	// <---->dimBlock\dimGrid
@@ -557,10 +557,10 @@ void ImageProcess::medianFilterCL(ImageFragment * frag) {
 
 	// step 10:run kernel;				
 	// put kernel and work-item arugement into queue and excute;
-	ASSERT(OpenCLUtils::runKernel(dim, localSize, globalSize));
+	ENSURE(OpenCLUtils::runKernel(dim, localSize, globalSize));
 
 	//step 11:get result;
-	ASSERT(OpenCLUtils::readBuffer(frgbs, bSize, startPos));
+	ENSURE(OpenCLUtils::readBuffer(frgbs, bSize, startPos));
 
 	//step 12:release all resource;
 	OpenCLUtils::clean();
@@ -1017,35 +1017,35 @@ void ImageProcess::_biCubicTranslateCL(byte *srcData, byte *distData, int distW,
 
 	// step 4:create command queue;						
 	// 一个device有多个queue，queue之间并行执行
-	ASSERT(OpenCLUtils::createCommonQueue());
+	ENSURE(OpenCLUtils::createCommonQueue());
 
 	// step 5:create memory object;						
 	// 图像类型（iamge）
 	size_t srcSize = -pit * srcH * sizeof(byte); // 缓冲区大小
 	byte* srcPos = srcData + pit * (srcH - 1);
 	auto srcMem = OpenCLUtils::createBuffer(srcSize, srcPos);
-	ASSERT(srcMem != NULL);
+	ENSURE(srcMem != NULL);
 
 	size_t distSize = -dPit * distH * sizeof(byte); // 缓冲区大小
 	byte* distPos = distData + dPit * (distH - 1);
 	auto distMem = OpenCLUtils::createBuffer(distSize, distPos);
-	ASSERT(distMem != NULL);
+	ENSURE(distMem != NULL);
 
 	// step 6:create program; & step 7:create kernel;
-	ASSERT(OpenCLUtils::createProgram("transform.cl", "transformCL"));
+	ENSURE(OpenCLUtils::createProgram("transform.cl", "transformCL"));
 
 	// step 8:set kernel arguement;
-	ASSERT(OpenCLUtils::setKernelArg(0, sizeof(cl_mem), (void*)&srcMem));
-	ASSERT(OpenCLUtils::setKernelArg(1, sizeof(cl_mem), (void*)&distMem));
-	ASSERT(OpenCLUtils::setKernelArg(2, sizeof(int), (void*)&pit));
-	ASSERT(OpenCLUtils::setKernelArg(3, sizeof(int), (void*)&dPit));
-	ASSERT(OpenCLUtils::setKernelArg(4, sizeof(int), (void*)&distW));
-	ASSERT(OpenCLUtils::setKernelArg(5, sizeof(int), (void*)&distH));
-	ASSERT(OpenCLUtils::setKernelArg(6, sizeof(int), (void*)&srcW));
-	ASSERT(OpenCLUtils::setKernelArg(7, sizeof(int), (void*)&srcH));
-	ASSERT(OpenCLUtils::setKernelArg(8, sizeof(double), (void*)&angle));
-	ASSERT(OpenCLUtils::setKernelArg(9, sizeof(double), (void*)&xScale));
-	ASSERT(OpenCLUtils::setKernelArg(10, sizeof(double), (void*)&yScale));
+	ENSURE(OpenCLUtils::setKernelArg(0, sizeof(cl_mem), (void*)&srcMem));
+	ENSURE(OpenCLUtils::setKernelArg(1, sizeof(cl_mem), (void*)&distMem));
+	ENSURE(OpenCLUtils::setKernelArg(2, sizeof(int), (void*)&pit));
+	ENSURE(OpenCLUtils::setKernelArg(3, sizeof(int), (void*)&dPit));
+	ENSURE(OpenCLUtils::setKernelArg(4, sizeof(int), (void*)&distW));
+	ENSURE(OpenCLUtils::setKernelArg(5, sizeof(int), (void*)&distH));
+	ENSURE(OpenCLUtils::setKernelArg(6, sizeof(int), (void*)&srcW));
+	ENSURE(OpenCLUtils::setKernelArg(7, sizeof(int), (void*)&srcH));
+	ENSURE(OpenCLUtils::setKernelArg(8, sizeof(double), (void*)&angle));
+	ENSURE(OpenCLUtils::setKernelArg(9, sizeof(double), (void*)&xScale));
+	ENSURE(OpenCLUtils::setKernelArg(10, sizeof(double), (void*)&yScale));
 
 	// step 9:set work group size;  							
 	// <---->dimBlock\dimGrid
@@ -1057,10 +1057,10 @@ void ImageProcess::_biCubicTranslateCL(byte *srcData, byte *distData, int distW,
 
 	// step 10:run kernel;				
 	// put kernel and work-item arugement into queue and excute;
-	ASSERT(OpenCLUtils::runKernel(dim, localSize, globalSize));
+	ENSURE(OpenCLUtils::runKernel(dim, localSize, globalSize));
 
 	//step 11:get result;
-	ASSERT(OpenCLUtils::readBuffer(distMem, distSize, distPos));
+	ENSURE(OpenCLUtils::readBuffer(distMem, distSize, distPos));
 
 	//step 12:release all resource;
 	OpenCLUtils::clean();

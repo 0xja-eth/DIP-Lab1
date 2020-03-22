@@ -15,9 +15,9 @@ std::vector<cl_mem> OpenCLUtils::mems;
 cl_int OpenCLUtils::ret;
 
 void OpenCLUtils::initialize() {
-	ASSERT(getPlatform());
-	ASSERT(getDevices());
-	ASSERT(getContext());
+	ENSURE(getPlatform());
+	ENSURE(getDevices());
+	ENSURE(getContext());
 	LOG("初始化OpenCL完成");
 }
 
